@@ -258,15 +258,25 @@
         </div>
       </td></tr>
       <tr>
-        <td><span class="tag tag-card">YC</span></td>
-        <td>1</td><td>When issued</td>
-        <td>YellowCard</td>
+        <td><span class="tag tag-card">YC / YR1 / YR2</span></td>
+        <td>varies</td><td>When issued</td>
+        <td>Booking</td>
         <td><span class="tag" style="background:#fff3e0;color:#e65100;font-size:10px">missing</span></td>
-        <td>cardType ("YC"), cardIssuedCompetitor, cardIssuedTo, cardIssuedPlayer (bool), cardIssuedCoach (bool), scoreH/scoreA</td>
+        <td>cardType ("YC"/"YR1"/"YR2"), cardIssuedCompetitor, cardIssuedTo, cardIssuedPlayer (bool), cardIssuedCoach (bool), scoreH/scoreA, isWinner</td>
       </tr>
       <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="info-block warn" style="margin-bottom:14px">
+          <h4>📋 Booking — 3 escalation levels (all use actionType: "YC")</h4>
+          <table style="margin-top:8px;font-size:14px">
+            <tr><th>cardType</th><th>Name</th><th>Consequence</th><th>isWinner</th></tr>
+            <tr><td><span class="tag tag-card">YC</span></td><td>Yellow Card</td><td>Warning — no point penalty</td><td>null</td></tr>
+            <tr><td><span class="tag tag-card">YR1</span></td><td>Yellow+Red 1st</td><td>Point awarded to opponent</td><td>"H" or "A" (opponent)</td></tr>
+            <tr><td><span class="tag tag-card">YR2</span></td><td>Yellow+Red 2nd</td><td>Game awarded to opponent</td><td>"H" or "A" (opponent)</td></tr>
+          </table>
+        </div>
         <div class="json-grid">
-          <div class="json-example">{
+          <div class="json-example"><span style="color:#6c7086;font-size:10px">// seqNo=94 — YC (warning, no penalty)</span>
+{
   <span class="json-key">"seqNo"</span>: <span class="json-num">94</span>,
   <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"YC"</span>,
   <span class="json-key">"period"</span>: <span class="json-str">"G2"</span>,
@@ -275,16 +285,18 @@
   <span class="json-key">"scoreA"</span>: <span class="json-num">3</span>,
   <span class="json-key">"cardType"</span>: <span class="json-str json-highlight">"YC"</span>,
   <span class="json-key">"cardIssuedCompetitor"</span>: <span class="json-str json-highlight">"200156"</span>,
-  <span class="json-key">"cardIssuedPlayer"</span>: <span class="json-bool json-highlight">true</span>,
+  <span class="json-key">"cardIssuedPlayer"</span>: <span class="json-bool">true</span>,
   <span class="json-key">"cardIssuedCoach"</span>: <span class="json-bool">false</span>,
   <span class="json-key">"cardIssuedTo"</span>: <span class="json-str json-highlight">"A"</span>
 }</div>
           <div class="json-note">
-            <span class="arrow">→ cardIssuedCompetitor = "200156"</span> — KRIVOKAPIC (use as PlayerId)<br>
+            <span class="arrow">→ cardType = "YC"</span> — warning only, no score change<br>
+            <span class="arrow">→ cardIssuedCompetitor = "200156"</span> — KRIVOKAPIC sanctioned<br>
             <span class="arrow">→ cardIssuedTo = "A"</span> — Away side<br>
-            <span class="arrow">→ cardIssuedPlayer = true</span> — issued to player, not coach<br>
-            <span class="arrow">→ isWinner = null</span> — no point scored<br><br>
-            2nd yellow = YR1 (point penalty), 3rd = YR2 (game penalty).
+            <span class="arrow">→ cardIssuedPlayer = true</span> — issued to player (not coach)<br>
+            <span class="arrow">→ isWinner = null</span> — no point awarded<br><br>
+            For <strong>YR1</strong>: same structure, cardType="YR1", isWinner = opponent side (point awarded).<br>
+            For <strong>YR2</strong>: cardType="YR2", isWinner = opponent side (game awarded). Score jumps to game-winning total.
           </div>
         </div>
       </td></tr>
@@ -458,7 +470,7 @@
       <tr><td><span class="tag" style="background:#e8f5e9;color:#2e7d32">LV</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Pre-match event signalling match is live. Maps to MatchStart (4404).</td></tr>
       <tr><td><span class="tag tag-ok">IM</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Game transition = GameStart action. Fire for each new game (G2-G5 only; G1 uses match start).</td></tr>
       <tr><td><span class="tag tag-ok">UGR</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Updated game result = GameEnd action with final game score.</td></tr>
-      <tr><td><span class="tag tag-card">YC</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Yellow card → 1 action. cardIssuedCompetitor = sanctioned player.</td></tr>
+      <tr><td><span class="tag tag-card">YC / YR1 / YR2</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Booking → 1 action. cardType distinguishes YC/YR1/YR2. cardIssuedCompetitor = sanctioned player. All three IDs missing — new Booking action needed in SMT.</td></tr>
       <tr><td><span class="tag tag-ok">LET</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Let called → 1 action (score unchanged, rally replayed). Log for completeness.</td></tr>
     </table>
   </div>
