@@ -129,109 +129,17 @@
 </div>
 
 <div class="nav">
-  <a href="#feed-structure" class="active">1 — Feed Structure</a>
-  <a href="#action-mapping">2 — Action Mapping + JSON</a>
-  <a href="#decomposition">3 — Decomposition</a>
-  <a href="#match-ingestion">4 — Match Ingestion</a>
-  <a href="#player-ingestion">5 — Players Ingestion</a>
-  <a href="#teams-ingestion">6 — Teams Ingestion</a>
-  <a href="#player-roles">7 — Player Roles</a>
-  <a href="#field-mapping">8 — Field Mapping</a>
-  <a href="#pitfalls">9 — Pitfalls &amp; Test Cases</a>
+  <a href="#action-mapping" class="active">1 — Action Mapping + JSON</a>
+  <a href="#decomposition">2 — Decomposition</a>
+  <a href="#match-ingestion">3 — Match Ingestion</a>
+  <a href="#player-ingestion">4 — Players Ingestion</a>
+  <a href="#teams-ingestion">5 — Teams Ingestion</a>
+  <a href="#player-roles">6 — Player Roles</a>
+  <a href="#field-mapping">7 — Field Mapping</a>
+  <a href="#pitfalls">8 — Pitfalls &amp; Test Cases</a>
 </div>
 
 <div class="content">
-
-<!-- SHEET 2: FEED STRUCTURE -->
-<div class="card" id="feed-structure">
-  <div class="card-header">
-    <div class="icon" style="background:#e0f2f1">🏗️</div>
-    <h2>Sheet 2 — Feed Structure &amp; JSON Paths</h2>
-    <span class="sheet-num">Sheet 2 of 7</span>
-  </div>
-  <div class="card-body">
-    <div class="info-block">
-      <h4>Root Path to PBP Array</h4>
-      <p><span class="path">value.competition.actionsProgressionByGame[]</span> — ordered by <span class="code">seqNo</span> (sequential across the whole match)</p>
-      <p style="margin-top:4px">Current state snapshot: <span class="path">value.competition.actions</span> (same structure as array items — latest event only)</p>
-    </div>
-
-    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Kafka Envelope Fields</h3>
-    <table>
-      <tr><th>Field</th><th>Path</th><th>Type</th><th>Example</th><th>Use</th></tr>
-      <tr><td>Kafka offset</td><td class="path">.offset</td><td>int</td><td>5099</td><td>Dedup / ordering</td></tr>
-      <tr><td>Match key</td><td class="path">.key</td><td>string</td><td>M.SINGLES--------U19.GP13.000300--</td><td>Match identifier (format)</td></tr>
-      <tr><td>Match ID</td><td class="path">.value.matchId</td><td>string</td><td>TTEMSINGLES--------U19GP13000300--</td><td>Primary match key</td></tr>
-      <tr><td>Sequence #</td><td class="path">.value.sequenceNumber</td><td>int</td><td>186</td><td>Latest seqNo processed</td></tr>
-      <tr><td>Status</td><td class="path">.value.resultStatus</td><td>string</td><td>LIVE</td><td>LIVE / FINAL / etc.</td></tr>
-      <tr><td>Competition code</td><td class="path">.value.competitionCode</td><td>string</td><td>WTT-2026-3304-TEV-WCD</td><td>Tournament identifier</td></tr>
-      <tr><td>Document type</td><td class="path">.value.documentType</td><td>string</td><td>DT_PLAY_BY_PLAY</td><td>Filter: only ingest PBP</td></tr>
-      <tr><td>Logical date</td><td class="path">.value.logicalDate</td><td>string</td><td>2026-04-27</td><td>Match date (YYYY-MM-DD)</td></tr>
-      <tr><td>Source</td><td class="path">.value.source</td><td>string</td><td>OVR</td><td>Provider tag</td></tr>
-      <tr><td>Event ID</td><td class="path">.value.eventId</td><td>string</td><td>3304</td><td>Tournament/event ID</td></tr>
-    </table>
-
-    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Match Info Fields</h3>
-    <table>
-      <tr><th>Field</th><th>Path</th><th>Type</th><th>Example</th><th>Notes</th></tr>
-      <tr><td>Discipline</td><td class="path">.value.competition.extendedInfos.matchInfo.disciplineName</td><td>string</td><td>Table Tennis</td><td></td></tr>
-      <tr><td>Event name</td><td class="path">...matchInfo.eventName</td><td>string</td><td>U19 Boys' Singles</td><td></td></tr>
-      <tr><td>Best of X</td><td class="path">...matchInfo.bestOfXGames</td><td>int</td><td>5</td><td>5 or 7</td></tr>
-      <tr><td>Max pts/game</td><td class="path">...matchInfo.maxPointsPerGame</td><td>int</td><td>11</td><td>Always 11</td></tr>
-      <tr><td>Advantage pts</td><td class="path">...matchInfo.advantagePerGame</td><td>int</td><td>2</td><td>Min 2pt lead after 10-10</td></tr>
-      <tr><td>Yellow card rules</td><td class="path">...matchInfo.yellowCard / yellowRed1 / yellowRed2</td><td>bool</td><td>true</td><td>Determines card escalation</td></tr>
-      <tr><td>Current game</td><td class="path">...scoreInfo.currentGame</td><td>int</td><td>3</td><td>1-5 (or 1-7)</td></tr>
-      <tr><td>Game scores</td><td class="path">...scoreInfo.gameScores</td><td>string</td><td>"13-11,11-9,12-10,0-0,0-0"</td><td>Parse by comma; "0-0" = not played</td></tr>
-      <tr><td>Match score</td><td class="path">...scoreInfo.matchScore</td><td>string</td><td>"2-0"</td><td>Games won H-A</td></tr>
-      <tr><td>Group</td><td class="path">...scoreInfo.group</td><td>string</td><td>GP13</td><td>Group stage identifier</td></tr>
-    </table>
-
-    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Competitor/Player Fields</h3>
-    <table>
-      <tr><th>Field</th><th>Path</th><th>Type</th><th>Example</th><th>Notes</th></tr>
-      <tr><td>Competitor type</td><td class="path">...competitor[n].competitorType</td><td>string</td><td>"H" or "A"</td><td>Home / Away</td></tr>
-      <tr><td>Competitor ID</td><td class="path">...competitor[n].competitorId</td><td>string</td><td>"200863"</td><td>Same as playerId in singles</td></tr>
-      <tr><td>Name</td><td class="path">...competitor[n].name</td><td>string</td><td>SZABO Lenard</td><td>Format: LASTNAME Firstname</td></tr>
-      <tr><td>Organization</td><td class="path">...competitor[n].organization</td><td>string</td><td>HUN</td><td>3-letter IOC country code</td></tr>
-      <tr><td>Yellow cards</td><td class="path">...competitor[n].compCardY</td><td>int</td><td>0 or 1</td><td>Running total</td></tr>
-      <tr><td>Timeouts used</td><td class="path">...competitor[n].compTimeout</td><td>int</td><td>0 or 1</td><td>1 timeout allowed per match</td></tr>
-      <tr><td>Scores by game</td><td class="path">...competitor[n].scores</td><td>string</td><td>"13,11,12,0,0"</td><td>Comma-separated per game</td></tr>
-      <tr><td>Player in doubles</td><td class="path">...competitor[n].players[0]</td><td>object</td><td></td><td>Array — 1 item for singles, 2 for doubles</td></tr>
-    </table>
-
-    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Action Object Fields (actionsProgressionByGame items)</h3>
-    <table>
-      <tr><th>Field</th><th>Type</th><th>Example values</th><th>Nullable</th><th>Notes</th></tr>
-      <tr><td><strong>seqNo</strong></td><td>int</td><td>1, 2, 3 … 186</td><td>No</td><td>Sequential across full match — use as ActionId basis</td></tr>
-      <tr><td><strong>actionType</strong></td><td>string</td><td>PT, STP, SSR, GPOINT…</td><td>No</td><td>13 types observed — see Sheet 5</td></tr>
-      <tr><td><strong>period</strong></td><td>string</td><td>G1, G2, G3, G4, G5</td><td>Yes (null for SL)</td><td>Game number</td></tr>
-      <tr><td><strong>serverCompetitor</strong></td><td>string</td><td>"200863"</td><td>Yes</td><td>Current server's competitor ID</td></tr>
-      <tr><td><strong>serverPlayer</strong></td><td>string</td><td>"200863"</td><td>Yes</td><td>= serverCompetitor in singles</td></tr>
-      <tr><td><strong>serverReceiver</strong></td><td>string</td><td>"200156"</td><td>Yes</td><td>Receiver competitor ID</td></tr>
-      <tr><td><strong>serverNext</strong></td><td>string</td><td>"200863"</td><td>Yes (null during rotation)</td><td>Who serves next point</td></tr>
-      <tr><td><strong>receiverNext</strong></td><td>string</td><td>"200156"</td><td>Yes</td><td></td></tr>
-      <tr><td><strong>rightSide / leftSide</strong></td><td>string</td><td>"A", "H"</td><td>No</td><td>Which side (H/A) is on right/left of table</td></tr>
-      <tr><td><strong>isWinner</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Who won this point. <em>Null for non-scoring events</em></td></tr>
-      <tr><td><strong>scoreH / scoreA</strong></td><td>int</td><td>0–13</td><td>No</td><td>Score within current game (resets each game)</td></tr>
-      <tr><td><strong>actionedFor</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Present on PT events; same as isWinner</td></tr>
-      <tr><td><strong>gamePoint</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Set on PT when that point is a game point</td></tr>
-      <tr><td><strong>matchPoint</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Set on PT when that point is a match point</td></tr>
-      <tr><td><strong>championshipPoint</strong></td><td>string</td><td>player ID, null</td><td>Yes</td><td>Championship/title point — player ID (not H/A)</td></tr>
-      <tr><td><strong>suddenDeathPoint</strong></td><td>bool</td><td>false</td><td>No</td><td>True at 10-10 deuce situation</td></tr>
-      <tr><td><strong>matchWinner</strong></td><td>string</td><td>null (mid-match)</td><td>Yes</td><td>Set to "H" or "A" on final UGR when match ends</td></tr>
-      <tr><td><strong>cardType</strong></td><td>string</td><td>"YC", null</td><td>Yes</td><td>YC = yellow card. YR1/YR2 = escalation</td></tr>
-      <tr><td><strong>cardIssuedCompetitor</strong></td><td>string</td><td>"200156"</td><td>Yes</td><td>Player who received card</td></tr>
-      <tr><td><strong>cardIssuedPlayer / cardIssuedCoach</strong></td><td>bool</td><td>true/false</td><td>No</td><td>Whether card issued to player vs. coach</td></tr>
-      <tr><td><strong>cardIssuedTo</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Side that received the card</td></tr>
-      <tr><td><strong>timeoutRequestedBy</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Who called timeout</td></tr>
-      <tr><td><strong>timeoutStatus</strong></td><td>string</td><td>"START", "END", null</td><td>Yes</td><td>TO event fires twice: START then END</td></tr>
-
-      <tr><td><strong>tossWonby / sideSelection / sideSelectedBy</strong></td><td>string</td><td>null in sample</td><td>Yes</td><td>Pre-match coin toss fields</td></tr>
-
-      <tr><td><strong>extendedInfos</strong></td><td>object</td><td>null</td><td>Yes</td><td>Reserved — always null in current sample</td></tr>
-    </table>
-  </div>
-</div>
 
 <!-- SHEET 3: ACTION MAPPING + JSON EXAMPLES (moved up) -->
 <div class="card" id="action-mapping">
