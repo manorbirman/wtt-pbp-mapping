@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WTT — Table Tennis PBP Ingestion Mapping Guide</title>
+<style>
+  :root {
+    --blue: #1a56db; --blue-light: #e8f0fe; --blue-dark: #1240a8;
+    --green: #0f9d58; --green-light: #e6f4ea;
+    --orange: #f57c00; --orange-light: #fff3e0;
+    --red: #d32f2f; --red-light: #ffebee;
+    --gray: #5f6368; --gray-light: #f8f9fa; --gray-border: #dadce0;
+    --purple: #7b1fa2; --purple-light: #f3e5f5;
+    --teal: #00796b; --teal-light: #e0f2f1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #202124; background: #f1f3f4; }
+
+  .header { background: linear-gradient(135deg, #1240a8 0%, #1a56db 60%, #0f9d58 100%); color: white; padding: 28px 40px; }
+  .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .header .subtitle { font-size: 14px; opacity: 0.85; margin-bottom: 12px; }
+  .header .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); border-radius: 12px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+
+  .nav { background: white; border-bottom: 1px solid var(--gray-border); display: flex; padding: 0 40px; overflow-x: auto; position: sticky; top: 0; z-index: 100; }
+  .nav a { padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--gray); text-decoration: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .nav a:hover, .nav a.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .content { max-width: 1200px; margin: 0 auto; padding: 24px 40px; display: flex; flex-direction: column; gap: 24px; }
+
+  .card { background: white; border-radius: 8px; border: 1px solid var(--gray-border); overflow: hidden; }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid var(--gray-border); display: flex; align-items: center; gap: 10px; }
+  .card-header .icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .card-header h2 { font-size: 15px; font-weight: 700; color: #202124; }
+  .card-header .sheet-num { font-size: 11px; background: var(--blue-light); color: var(--blue-dark); border-radius: 10px; padding: 2px 8px; font-weight: 700; margin-left: auto; }
+  .card-body { padding: 20px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: var(--gray-light); font-weight: 700; text-align: left; padding: 8px 10px; border: 1px solid var(--gray-border); color: #3c4043; font-size: 11px; }
+  td { padding: 7px 10px; border: 1px solid var(--gray-border); vertical-align: top; line-height: 1.4; }
+  tr:hover td { background: #f8f9ff; }
+
+  .tag { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+  .tag-primary { background: var(--blue-light); color: var(--blue-dark); }
+  .tag-ok { background: var(--green-light); color: var(--green); }
+  .tag-warn { background: var(--orange-light); color: var(--orange); }
+  .tag-skip { background: #f5f5f5; color: #9e9e9e; }
+  .tag-card { background: #fff3e0; color: #e65100; }
+  .tag-flag { background: var(--purple-light); color: var(--purple); }
+
+  .code { font-family: 'Consolas', monospace; background: #f5f5f5; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #d32f2f; }
+  .path { font-family: 'Consolas', monospace; font-size: 11px; color: #1565c0; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .info-block { background: var(--blue-light); border-left: 3px solid var(--blue); border-radius: 4px; padding: 12px 14px; margin-bottom: 12px; }
+  .info-block.warn { background: var(--orange-light); border-left-color: var(--orange); }
+  .info-block.ok { background: var(--green-light); border-left-color: var(--green); }
+  .info-block.tip { background: var(--teal-light); border-left-color: var(--teal); }
+  .info-block h4 { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .info-block p, .info-block li { font-size: 12px; line-height: 1.6; }
+  .info-block ul { padding-left: 16px; }
+
+  .kv-grid { display: grid; grid-template-columns: 160px 1fr; gap: 4px 12px; font-size: 12px; }
+  .kv-key { font-weight: 600; color: var(--gray); }
+  .kv-val { color: #202124; }
+
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px; background: var(--gray-light); border-radius: 6px; font-size: 12px; }
+  .flow-box { background: white; border: 1px solid var(--gray-border); border-radius: 6px; padding: 6px 12px; font-weight: 600; }
+  .flow-arrow { color: var(--gray); font-size: 16px; }
+
+  .pitfall { display: flex; gap: 10px; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; }
+  .pitfall.err { background: var(--red-light); border-left: 3px solid var(--red); }
+  .pitfall.fix { background: var(--green-light); border-left: 3px solid var(--green); }
+  .pitfall .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .pitfall .text { font-size: 12px; line-height: 1.5; }
+  .pitfall .text strong { display: block; margin-bottom: 2px; }
+
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid var(--gray-border); font-size: 12px; line-height: 1.5; }
+  .checklist li:last-child { border: none; }
+  .checklist .check { width: 16px; height: 16px; border: 2px solid var(--gray-border); border-radius: 3px; flex-shrink: 0; margin-top: 1px; }
+
+  .summary-card { background: linear-gradient(135deg, #f8f9ff 0%, #e8f0fe 100%); border: 1px solid #c5d5f8; border-radius: 8px; padding: 20px; }
+  .summary-title { font-size: 18px; font-weight: 700; color: var(--blue-dark); margin-bottom: 4px; }
+  .summary-sub { font-size: 12px; color: var(--gray); margin-bottom: 16px; }
+
+  .risk-row { display: grid; grid-template-columns: 140px 80px 1fr; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--gray-border); font-size: 12px; }
+  .risk-row:last-child { border: none; }
+  .risk-low { color: var(--green); font-weight: 700; }
+  .risk-med { color: var(--orange); font-weight: 700; }
+  .risk-high { color: var(--red); font-weight: 700; }
+
+  .json-example { background: #1e1e2e; border-radius: 6px; padding: 14px 16px; font-family: 'Consolas', monospace; font-size: 11px; line-height: 1.7; color: #cdd6f4; overflow-x: auto; }
+  .json-key { color: #89b4fa; }
+  .json-str { color: #a6e3a1; }
+  .json-num { color: #fab387; }
+  .json-null { color: #6c7086; font-style: italic; }
+  .json-bool { color: #cba6f7; }
+  .json-highlight { background: rgba(250,179,135,0.2); border-radius: 2px; }
+  .json-section { margin-bottom: 20px; }
+  .json-section-title { font-size: 12px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .json-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 900px) { .json-grid { grid-template-columns: 1fr; } }
+  .json-note { background: #f8f9fa; border: 1px solid var(--gray-border); border-radius: 6px; padding: 10px 12px; font-size: 11px; line-height: 1.7; }
+  .json-note strong { display: block; margin-bottom: 4px; color: #202124; }
+  .json-note .arrow { color: var(--blue); font-weight: 700; }
+  .action-row { border-bottom: 1px solid var(--gray-border); padding: 16px 0; }
+  .action-row:last-child { border: none; }
+  .action-label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .action-label h4 { font-size: 13px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚪ Table Tennis (WTT) — PBP Ingestion Mapping Guide</h1>
+  <div class="subtitle">OVR Kafka Feed → WSC Mamba | Produced by Manor Birman, PM Intake | May 2026</div>
+  <div class="badges">
+    <span class="badge">SystemTypeId: 44</span>
+    <span class="badge">ResolverType: BadmintonAndTableTennis</span>
+    <span class="badge">Provider: OVR / ITTF</span>
+    <span class="badge">Feed: Kafka JSON Stream</span>
+    <span class="badge">DocType: DT_PLAY_BY_PLAY</span>
+    <span class="badge">Sample: WTT-2026-3304 (Daejeon)</span>
+  </div>
+</div>
+
+<div class="nav">
+  <a href="#overview" class="active">1 — Overview</a>
+  <a href="#feed-structure">2 — Feed Structure</a>
+  <a href="#action-mapping">3 — Action Mapping + JSON</a>
+  <a href="#decomposition">4 — Decomposition</a>
+  <a href="#match-ingestion">5 — Match Ingestion</a>
+  <a href="#player-ingestion">6 — Players Ingestion</a>
+  <a href="#teams-ingestion">7 — Teams Ingestion</a>
+  <a href="#player-roles">8 — Player Roles</a>
+  <a href="#field-mapping">9 — Field Mapping</a>
+  <a href="#pitfalls">10 — Pitfalls &amp; Test Cases</a>
+</div>
+
+<div class="content">
+
+<!-- SHEET 1: OVERVIEW -->
+<div class="card" id="overview">
+  <div class="card-header">
+    <div class="icon" style="background:#e8f0fe">📋</div>
+    <h2>Sheet 1 — Overview &amp; Key Principles</h2>
+    <span class="sheet-num">Sheet 1 of 7</span>
+  </div>
+  <div class="card-body">
+    <div class="summary-card">
+      <div class="summary-title">Executive Summary</div>
+      <div class="summary-sub">TL;DR for PM Lead and Tech Lead</div>
+      <div class="grid2">
+        <div>
+          <div class="info-block ok">
+            <h4>✅ Good News: Low Decomposition Complexity</h4>
+            <p>Table Tennis Singles is <strong>1 server vs. 1 receiver per point</strong>. No multi-player decomposition required (unlike Football/Basketball). Most <span class="code">PT</span> events map 1:1 to a Mamba action. This significantly reduces implementation risk.</p>
+          </div>
+          <div class="info-block warn">
+            <h4>⚠️ Watch: Notification Events vs. State Events</h4>
+            <p>The feed emits <strong>~50% scaffolding events</strong> (STP = State Position) that must be filtered — they carry no new scoring data. Additionally, <span class="code">GPOINT</span> and <span class="code">MPOINT</span> are notification duplicates of <span class="code">PT</span>; do not double-count.</p>
+          </div>
+        </div>
+        <div>
+          <div class="kv-grid" style="margin-bottom:12px">
+            <span class="kv-key">Sport</span><span class="kv-val">Table Tennis (Badminton &amp; Table Tennis sub-sport)</span>
+            <span class="kv-key">WSC SystemTypeId</span><span class="kv-val"><strong>44</strong></span>
+            <span class="kv-key">ResolverType</span><span class="kv-val">BadmintonAndTableTennis</span>
+            <span class="kv-key">Provider</span><span class="kv-val">OVR (ITTF Olympic Data Feed)</span>
+            <span class="kv-key">Feed format</span><span class="kv-val">Kafka topic, JSON messages</span>
+            <span class="kv-key">Document type</span><span class="kv-val">DT_PLAY_BY_PLAY</span>
+            <span class="kv-key">Competition sample</span><span class="kv-val">WTT-2026-3304-TEV-WCD (Daejeon)</span>
+            <span class="kv-key">Match sample</span><span class="kv-val">SZABO Lenard (HUN) vs KRIVOKAPIC Jaksa (MNE)</span>
+            <span class="kv-key">Match format</span><span class="kv-val">Best of 5 games, 11 pts/game (advantage at 10-10)</span>
+            <span class="kv-key">Action ID range</span><span class="kv-val">TBD — assign per WSC Mamba model for SystemTypeId 44</span>
+            <span class="kv-key">Coverage estimate</span><span class="kv-val">~85% of event types mapped (see Sheet 5)</span>
+            <span class="kv-key">Complexity</span><span class="kv-val">🟢 Low — no decomposition needed for singles</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:10px">Ingestion Workflow</h3>
+      <div class="flow">
+        <div class="flow-box">🔴 Kafka Topic<br><small style="color:#666;font-weight:400">DT_PLAY_BY_PLAY</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">Filter: docType check<br><small style="color:#666;font-weight:400">skip non-PBP</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">Parse actionsProgressionByGame[]<br><small style="color:#666;font-weight:400">by seqNo</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">Filter STP events<br><small style="color:#666;font-weight:400">skip scaffolding</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">Map actionType<br><small style="color:#666;font-weight:400">PT → Point, etc.</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">Resolve players<br><small style="color:#666;font-weight:400">competitorId → WSC entity</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">Write to Mamba<br><small style="color:#666;font-weight:400">with ActionId seq</small></div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+
+    </div>
+  </div>
+</div>
+
+<!-- SHEET 2: FEED STRUCTURE -->
+<div class="card" id="feed-structure">
+  <div class="card-header">
+    <div class="icon" style="background:#e0f2f1">🏗️</div>
+    <h2>Sheet 2 — Feed Structure &amp; JSON Paths</h2>
+    <span class="sheet-num">Sheet 2 of 7</span>
+  </div>
+  <div class="card-body">
+    <div class="info-block">
+      <h4>Root Path to PBP Array</h4>
+      <p><span class="path">value.competition.actionsProgressionByGame[]</span> — ordered by <span class="code">seqNo</span> (sequential across the whole match)</p>
+      <p style="margin-top:4px">Current state snapshot: <span class="path">value.competition.actions</span> (same structure as array items — latest event only)</p>
+    </div>
+
+    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Kafka Envelope Fields</h3>
+    <table>
+      <tr><th>Field</th><th>Path</th><th>Type</th><th>Example</th><th>Use</th></tr>
+      <tr><td>Kafka offset</td><td class="path">.offset</td><td>int</td><td>5099</td><td>Dedup / ordering</td></tr>
+      <tr><td>Match key</td><td class="path">.key</td><td>string</td><td>M.SINGLES--------U19.GP13.000300--</td><td>Match identifier (format)</td></tr>
+      <tr><td>Match ID</td><td class="path">.value.matchId</td><td>string</td><td>TTEMSINGLES--------U19GP13000300--</td><td>Primary match key</td></tr>
+      <tr><td>Sequence #</td><td class="path">.value.sequenceNumber</td><td>int</td><td>186</td><td>Latest seqNo processed</td></tr>
+      <tr><td>Status</td><td class="path">.value.resultStatus</td><td>string</td><td>LIVE</td><td>LIVE / FINAL / etc.</td></tr>
+      <tr><td>Competition code</td><td class="path">.value.competitionCode</td><td>string</td><td>WTT-2026-3304-TEV-WCD</td><td>Tournament identifier</td></tr>
+      <tr><td>Document type</td><td class="path">.value.documentType</td><td>string</td><td>DT_PLAY_BY_PLAY</td><td>Filter: only ingest PBP</td></tr>
+      <tr><td>Logical date</td><td class="path">.value.logicalDate</td><td>string</td><td>2026-04-27</td><td>Match date (YYYY-MM-DD)</td></tr>
+      <tr><td>Source</td><td class="path">.value.source</td><td>string</td><td>OVR</td><td>Provider tag</td></tr>
+      <tr><td>Event ID</td><td class="path">.value.eventId</td><td>string</td><td>3304</td><td>Tournament/event ID</td></tr>
+    </table>
+
+    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Match Info Fields</h3>
+    <table>
+      <tr><th>Field</th><th>Path</th><th>Type</th><th>Example</th><th>Notes</th></tr>
+      <tr><td>Discipline</td><td class="path">.value.competition.extendedInfos.matchInfo.disciplineName</td><td>string</td><td>Table Tennis</td><td></td></tr>
+      <tr><td>Event name</td><td class="path">...matchInfo.eventName</td><td>string</td><td>U19 Boys' Singles</td><td></td></tr>
+      <tr><td>Best of X</td><td class="path">...matchInfo.bestOfXGames</td><td>int</td><td>5</td><td>5 or 7</td></tr>
+      <tr><td>Max pts/game</td><td class="path">...matchInfo.maxPointsPerGame</td><td>int</td><td>11</td><td>Always 11</td></tr>
+      <tr><td>Advantage pts</td><td class="path">...matchInfo.advantagePerGame</td><td>int</td><td>2</td><td>Min 2pt lead after 10-10</td></tr>
+      <tr><td>Yellow card rules</td><td class="path">...matchInfo.yellowCard / yellowRed1 / yellowRed2</td><td>bool</td><td>true</td><td>Determines card escalation</td></tr>
+      <tr><td>Current game</td><td class="path">...scoreInfo.currentGame</td><td>int</td><td>3</td><td>1-5 (or 1-7)</td></tr>
+      <tr><td>Game scores</td><td class="path">...scoreInfo.gameScores</td><td>string</td><td>"13-11,11-9,12-10,0-0,0-0"</td><td>Parse by comma; "0-0" = not played</td></tr>
+      <tr><td>Match score</td><td class="path">...scoreInfo.matchScore</td><td>string</td><td>"2-0"</td><td>Games won H-A</td></tr>
+      <tr><td>Group</td><td class="path">...scoreInfo.group</td><td>string</td><td>GP13</td><td>Group stage identifier</td></tr>
+    </table>
+
+    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Competitor/Player Fields</h3>
+    <table>
+      <tr><th>Field</th><th>Path</th><th>Type</th><th>Example</th><th>Notes</th></tr>
+      <tr><td>Competitor type</td><td class="path">...competitor[n].competitorType</td><td>string</td><td>"H" or "A"</td><td>Home / Away</td></tr>
+      <tr><td>Competitor ID</td><td class="path">...competitor[n].competitorId</td><td>string</td><td>"200863"</td><td>Same as playerId in singles</td></tr>
+      <tr><td>Name</td><td class="path">...competitor[n].name</td><td>string</td><td>SZABO Lenard</td><td>Format: LASTNAME Firstname</td></tr>
+      <tr><td>Organization</td><td class="path">...competitor[n].organization</td><td>string</td><td>HUN</td><td>3-letter IOC country code</td></tr>
+      <tr><td>Yellow cards</td><td class="path">...competitor[n].compCardY</td><td>int</td><td>0 or 1</td><td>Running total</td></tr>
+      <tr><td>Timeouts used</td><td class="path">...competitor[n].compTimeout</td><td>int</td><td>0 or 1</td><td>1 timeout allowed per match</td></tr>
+      <tr><td>Scores by game</td><td class="path">...competitor[n].scores</td><td>string</td><td>"13,11,12,0,0"</td><td>Comma-separated per game</td></tr>
+      <tr><td>Player in doubles</td><td class="path">...competitor[n].players[0]</td><td>object</td><td></td><td>Array — 1 item for singles, 2 for doubles</td></tr>
+    </table>
+
+    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Action Object Fields (actionsProgressionByGame items)</h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Example values</th><th>Nullable</th><th>Notes</th></tr>
+      <tr><td><strong>seqNo</strong></td><td>int</td><td>1, 2, 3 … 186</td><td>No</td><td>Sequential across full match — use as ActionId basis</td></tr>
+      <tr><td><strong>actionType</strong></td><td>string</td><td>PT, STP, SSR, GPOINT…</td><td>No</td><td>13 types observed — see Sheet 5</td></tr>
+      <tr><td><strong>period</strong></td><td>string</td><td>G1, G2, G3, G4, G5</td><td>Yes (null for SL)</td><td>Game number</td></tr>
+      <tr><td><strong>serverCompetitor</strong></td><td>string</td><td>"200863"</td><td>Yes</td><td>Current server's competitor ID</td></tr>
+      <tr><td><strong>serverPlayer</strong></td><td>string</td><td>"200863"</td><td>Yes</td><td>= serverCompetitor in singles</td></tr>
+      <tr><td><strong>serverReceiver</strong></td><td>string</td><td>"200156"</td><td>Yes</td><td>Receiver competitor ID</td></tr>
+      <tr><td><strong>serverNext</strong></td><td>string</td><td>"200863"</td><td>Yes (null during rotation)</td><td>Who serves next point</td></tr>
+      <tr><td><strong>receiverNext</strong></td><td>string</td><td>"200156"</td><td>Yes</td><td></td></tr>
+      <tr><td><strong>rightSide / leftSide</strong></td><td>string</td><td>"A", "H"</td><td>No</td><td>Which side (H/A) is on right/left of table</td></tr>
+      <tr><td><strong>isWinner</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Who won this point. <em>Null for non-scoring events</em></td></tr>
+      <tr><td><strong>scoreH / scoreA</strong></td><td>int</td><td>0–13</td><td>No</td><td>Score within current game (resets each game)</td></tr>
+      <tr><td><strong>actionedFor</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Present on PT events; same as isWinner</td></tr>
+      <tr><td><strong>gamePoint</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Set on PT when that point is a game point</td></tr>
+      <tr><td><strong>matchPoint</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Set on PT when that point is a match point</td></tr>
+      <tr><td><strong>championshipPoint</strong></td><td>string</td><td>player ID, null</td><td>Yes</td><td>Championship/title point — player ID (not H/A)</td></tr>
+      <tr><td><strong>suddenDeathPoint</strong></td><td>bool</td><td>false</td><td>No</td><td>True at 10-10 deuce situation</td></tr>
+      <tr><td><strong>matchWinner</strong></td><td>string</td><td>null (mid-match)</td><td>Yes</td><td>Set to "H" or "A" on final UGR when match ends</td></tr>
+      <tr><td><strong>cardType</strong></td><td>string</td><td>"YC", null</td><td>Yes</td><td>YC = yellow card. YR1/YR2 = escalation</td></tr>
+      <tr><td><strong>cardIssuedCompetitor</strong></td><td>string</td><td>"200156"</td><td>Yes</td><td>Player who received card</td></tr>
+      <tr><td><strong>cardIssuedPlayer / cardIssuedCoach</strong></td><td>bool</td><td>true/false</td><td>No</td><td>Whether card issued to player vs. coach</td></tr>
+      <tr><td><strong>cardIssuedTo</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Side that received the card</td></tr>
+      <tr><td><strong>timeoutRequestedBy</strong></td><td>string</td><td>"H", "A", null</td><td>Yes</td><td>Who called timeout</td></tr>
+      <tr><td><strong>timeoutStatus</strong></td><td>string</td><td>"START", "END", null</td><td>Yes</td><td>TO event fires twice: START then END</td></tr>
+
+      <tr><td><strong>tossWonby / sideSelection / sideSelectedBy</strong></td><td>string</td><td>null in sample</td><td>Yes</td><td>Pre-match coin toss fields</td></tr>
+
+      <tr><td><strong>extendedInfos</strong></td><td>object</td><td>null</td><td>Yes</td><td>Reserved — always null in current sample</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- SHEET 3: ACTION MAPPING + JSON EXAMPLES (moved up) -->
+<div class="card" id="action-mapping">
+  <div class="card-header">
+    <div class="icon" style="background:#fff3e0">🗺️</div>
+    <h2>Sheet 3 — Action Type Mapping, Coverage &amp; Real JSON Examples</h2>
+    <span class="sheet-num">Sheet 3 of 7</span>
+  </div>
+  <div class="card-body">
+    <div class="grid3" style="margin-bottom:16px">
+      <div style="background:var(--green-light);border:1px solid #a5d6a7;border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--green)">10</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600">Action types with Mamba mapping</div>
+      </div>
+      <div style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:#757575">3</div>
+        <div style="font-size:12px;color:#757575;font-weight:600">State / notification events</div>
+      </div>
+      <div style="background:var(--blue-light);border:1px solid #90caf9;border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--blue)">~85%</div>
+        <div style="font-size:12px;color:var(--blue);font-weight:600">Coverage estimate</div>
+      </div>
+    </div>
+
+    <table>
+      <tr><th>Provider actionType</th><th>Count in Sample</th><th>Frequency</th><th>Mamba Action</th><th>WSC Action ID</th><th>Key Fields</th></tr>
+      <!-- PT → Point (4401) -->
+      <tr>
+        <td><span class="tag tag-primary">PT</span></td>
+        <td>~40</td><td>Per point (regular)</td>
+        <td>Point</td>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0;font-size:10px">4401</span></td>
+        <td>seqNo, period, isWinner→PlayerId, scoreH, scoreA, serverCompetitor — gamePoint=null, matchPoint=null</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"seqNo"</span>: <span class="json-num">6</span>,
+  <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"PT"</span>,
+  <span class="json-key">"period"</span>: <span class="json-str">"G1"</span>,
+  <span class="json-key">"serverCompetitor"</span>: <span class="json-str">"200156"</span>,
+  <span class="json-key">"isWinner"</span>: <span class="json-str json-highlight">"H"</span>,
+  <span class="json-key">"scoreH"</span>: <span class="json-num json-highlight">1</span>,
+  <span class="json-key">"scoreA"</span>: <span class="json-num json-highlight">0</span>,
+  <span class="json-key">"suddenDeathPoint"</span>: <span class="json-bool">false</span>,
+  <span class="json-key">"gamePoint"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"matchPoint"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"championshipPoint"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"matchWinner"</span>: <span class="json-null">null</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ isWinner = "H"</span> — Home (SZABO) wins point. Resolve playerId via sideMap<br>
+            <span class="arrow">→ scoreH=1, scoreA=0</span> — in-game score after this point<br>
+            <span class="arrow">→ period = "G1"</span> — strip "G", use int 1<br>
+            <span class="arrow">→ gamePoint/matchPoint = null</span> — regular point, no special situation
+          </div>
+        </div>
+      </td></tr>
+
+      <!-- IM -->
+      <tr>
+        <td><span class="tag" style="background:#e8f5e9;color:#2e7d32">IM</span></td>
+        <td>2</td><td>Start of each game</td>
+        <td>GameStart</td>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0;font-size:10px">4406</span></td>
+        <td>seqNo, period, isWinner (prev game winner), scoreH/scoreA reset to 0</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"seqNo"</span>: <span class="json-num">71</span>,
+  <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"IM"</span>,
+  <span class="json-key">"period"</span>: <span class="json-str json-highlight">"G2"</span>,
+  <span class="json-key">"serverCompetitor"</span>: <span class="json-str">"200863"</span>,
+  <span class="json-key">"isWinner"</span>: <span class="json-str json-highlight">"H"</span>,
+  <span class="json-key">"scoreH"</span>: <span class="json-num json-highlight">0</span>,
+  <span class="json-key">"scoreA"</span>: <span class="json-num json-highlight">0</span>,
+  <span class="json-key">"matchWinner"</span>: <span class="json-null">null</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ period = "G2"</span> — Game 2 is starting<br>
+            <span class="arrow">→ scoreH=0, scoreA=0</span> — score resets for new game<br>
+            <span class="arrow">→ isWinner = "H"</span> — Home (SZABO) won the previous game (G1)<br>
+            <span class="arrow">→ serverCompetitor = "200863"</span> — SZABO serves first in G2<br><br>
+            IM fires between UGR (game end) and the first PT of the new game.
+          </div>
+        </div>
+      </td></tr>
+        <td>2</td><td>End of each game</td>
+        <td>GameEnd</td>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0;font-size:10px">WSC ID: 4407</span></td>
+        <td>seqNo, period, isWinner (game winner), final scoreH, scoreA, matchWinner</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"seqNo"</span>: <span class="json-num">70</span>,
+  <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"UGR"</span>,
+  <span class="json-key">"period"</span>: <span class="json-str json-highlight">"G1"</span>,
+  <span class="json-key">"serverCompetitor"</span>: <span class="json-str">"200156"</span>,
+  <span class="json-key">"isWinner"</span>: <span class="json-str json-highlight">"H"</span>,
+  <span class="json-key">"scoreH"</span>: <span class="json-num json-highlight">13</span>,
+  <span class="json-key">"scoreA"</span>: <span class="json-num json-highlight">11</span>,
+  <span class="json-key">"gamePoint"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"matchPoint"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"matchWinner"</span>: <span class="json-null">null</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ isWinner = "H"</span> — SZABO wins Game 1<br>
+            <span class="arrow">→ scoreH=13, scoreA=11</span> — final score of G1<br>
+            <span class="arrow">→ matchWinner = null</span> — match not over yet<br><br>
+            When matchWinner is set (e.g. "H"), the UGR also signals end of match.
+          </div>
+        </div>
+      </td></tr>
+        <td>1</td><td>When issued</td>
+        <td>YellowCard</td>
+        <td><span class="tag" style="background:#fff3e0;color:#e65100;font-size:10px">missing</span></td>
+        <td>cardType ("YC"), cardIssuedCompetitor, cardIssuedTo, cardIssuedPlayer (bool), cardIssuedCoach (bool), scoreH/scoreA</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"seqNo"</span>: <span class="json-num">94</span>,
+  <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"YC"</span>,
+  <span class="json-key">"period"</span>: <span class="json-str">"G2"</span>,
+  <span class="json-key">"isWinner"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"scoreH"</span>: <span class="json-num">6</span>,
+  <span class="json-key">"scoreA"</span>: <span class="json-num">3</span>,
+  <span class="json-key">"cardType"</span>: <span class="json-str json-highlight">"YC"</span>,
+  <span class="json-key">"cardIssuedCompetitor"</span>: <span class="json-str json-highlight">"200156"</span>,
+  <span class="json-key">"cardIssuedPlayer"</span>: <span class="json-bool json-highlight">true</span>,
+  <span class="json-key">"cardIssuedCoach"</span>: <span class="json-bool">false</span>,
+  <span class="json-key">"cardIssuedTo"</span>: <span class="json-str json-highlight">"A"</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ cardIssuedCompetitor = "200156"</span> — KRIVOKAPIC (use as PlayerId)<br>
+            <span class="arrow">→ cardIssuedTo = "A"</span> — Away side<br>
+            <span class="arrow">→ cardIssuedPlayer = true</span> — issued to player, not coach<br>
+            <span class="arrow">→ isWinner = null</span> — no point scored<br><br>
+            2nd yellow = YR1 (point penalty), 3rd = YR2 (game penalty).
+          </div>
+        </div>
+      </td></tr>
+      <tr>
+        <td><span class="tag" style="background:#e8f5e9;color:#2e7d32">LET</span></td>
+        <td>1</td><td>Rare</td>
+        <td>Let</td>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0;font-size:10px">4408</span></td>
+        <td>seqNo, period, scoreH, scoreA (unchanged), isWinner = null</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"seqNo"</span>: <span class="json-num">161</span>,
+  <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"LET"</span>,
+  <span class="json-key">"period"</span>: <span class="json-str">"G3"</span>,
+  <span class="json-key">"serverCompetitor"</span>: <span class="json-str">"200156"</span>,
+  <span class="json-key">"isWinner"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"scoreH"</span>: <span class="json-num">7</span>,
+  <span class="json-key">"scoreA"</span>: <span class="json-num">6</span>,
+  <span class="json-key">"matchWinner"</span>: <span class="json-null">null</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ isWinner = null</span> — no winner; rally replayed<br>
+            <span class="arrow">→ scoreH=7, scoreA=6</span> — score unchanged<br>
+            <span class="arrow">→ serverCompetitor = "200156"</span> — KRIVOKAPIC was serving<br><br>
+            Called when ball clips the net on serve or play is interrupted.
+          </div>
+        </div>
+      </td></tr>
+      <tr>
+        <td><span class="tag" style="background:#e8f5e9;color:#2e7d32">LV</span></td>
+        <td>1</td><td>Once, pre-match</td>
+        <td>MatchStart</td>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0;font-size:10px">4404</span></td>
+        <td>Pre-match event signalling match is live. No score fields.</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"seqNo"</span>: <span class="json-num">1</span>,
+  <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"LV"</span>,
+  <span class="json-key">"period"</span>: <span class="json-str">"G1"</span>,
+  <span class="json-key">"serverCompetitor"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"isWinner"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"scoreH"</span>: <span class="json-num">0</span>,
+  <span class="json-key">"scoreA"</span>: <span class="json-num">0</span>,
+  <span class="json-key">"matchWinner"</span>: <span class="json-null">null</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ actionType = "LV"</span> — match is now live<br>
+            <span class="arrow">→ isWinner = null</span> — no scoring<br>
+            <span class="arrow">→ scoreH=0, scoreA=0</span> — pre-match<br>
+            <span class="arrow">→ serverCompetitor = null</span> — server not yet assigned
+          </div>
+        </div>
+      </td></tr>
+      <tr>
+        <td><span class="tag" style="background:#e8f5e9;color:#2e7d32">GPOINT</span></td>
+        <td>4</td><td>Per game point situation</td>
+        <td>SetPoint</td>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0;font-size:10px">4402</span></td>
+        <td>Dedicated game/set point event. isWinner = side at game point. gamePoint flag set.</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"seqNo"</span>: <span class="json-num">52</span>,
+  <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"GPOINT"</span>,
+  <span class="json-key">"period"</span>: <span class="json-str json-highlight">"G1"</span>,
+  <span class="json-key">"serverCompetitor"</span>: <span class="json-str">"200863"</span>,
+  <span class="json-key">"isWinner"</span>: <span class="json-str json-highlight">"A"</span>,
+  <span class="json-key">"scoreH"</span>: <span class="json-num json-highlight">9</span>,
+  <span class="json-key">"scoreA"</span>: <span class="json-num json-highlight">10</span>,
+  <span class="json-key">"gamePoint"</span>: <span class="json-str json-highlight">"A"</span>,
+  <span class="json-key">"matchPoint"</span>: <span class="json-null">null</span>,
+  <span class="json-key">"championshipPoint"</span>: <span class="json-null">null</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ isWinner = "A"</span> — KRIVOKAPIC at game/set point (score 10:9)<br>
+            <span class="arrow">→ gamePoint = "A"</span> — "game point" in WTT = "set point" in WSC<br>
+            <span class="arrow">→ matchPoint = null</span> — not yet at match point<br><br>
+            Fires immediately after seqNo=51 (PT, SetPoint 4402) which carries the same gamePoint flag.
+          </div>
+        </div>
+      </td></tr>
+      <tr>
+        <td><span class="tag" style="background:#e8f5e9;color:#2e7d32">MPOINT</span></td>
+        <td>2</td><td>Per match point situation</td>
+        <td>MatchPoint</td>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0;font-size:10px">4403</span></td>
+        <td>Dedicated match point event. Carries matchPoint, gamePoint, and championshipPoint flags simultaneously.</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"seqNo"</span>: <span class="json-num">177</span>,
+  <span class="json-key">"actionType"</span>: <span class="json-str json-highlight">"MPOINT"</span>,
+  <span class="json-key">"period"</span>: <span class="json-str json-highlight">"G3"</span>,
+  <span class="json-key">"serverCompetitor"</span>: <span class="json-str">"200863"</span>,
+  <span class="json-key">"isWinner"</span>: <span class="json-str json-highlight">"H"</span>,
+  <span class="json-key">"scoreH"</span>: <span class="json-num json-highlight">10</span>,
+  <span class="json-key">"scoreA"</span>: <span class="json-num json-highlight">9</span>,
+  <span class="json-key">"matchPoint"</span>: <span class="json-str json-highlight">"H"</span>,
+  <span class="json-key">"gamePoint"</span>: <span class="json-str json-highlight">"H"</span>,
+  <span class="json-key">"championshipPoint"</span>: <span class="json-str json-highlight">"200863"</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ isWinner = "H"</span> — SZABO at match point<br>
+            <span class="arrow">→ matchPoint = "H"</span> — match point for Home<br>
+            <span class="arrow">→ gamePoint = "H"</span> — also at game point simultaneously<br>
+            <span class="arrow">→ championshipPoint = "200863"</span> — title point; value is player ID<br><br>
+            The preceding PT (seqNo=176) also carries all three flags — same moment, dual representation.
+          </div>
+        </div>
+      </td></tr>
+
+    </table>
+
+  </div>
+</div>
+
+<!-- SHEET 4: DECOMPOSITION -->
+<div class="card" id="decomposition">
+  <div class="card-header">
+    <div class="icon" style="background:#e8f5e9">🔀</div>
+    <h2>Sheet 4 — Event Decomposition Decision</h2>
+    <span class="sheet-num">Sheet 4 of 7</span>
+  </div>
+  <div class="card-body">
+    <div class="info-block ok">
+      <h4>✅ Decision: 1:1 Mapping for Singles (No Decomposition Required)</h4>
+      <p>Table Tennis Singles has exactly 1 player per side. Each <span class="code">PT</span> event = 1 scoring action. <strong>No multi-player decomposition needed.</strong> This is the simplest case in WSC's sport portfolio.</p>
+    </div>
+
+    <div class="grid2" style="margin-top:12px">
+      <div>
+        <h3 style="font-size:12px;font-weight:700;margin-bottom:8px">Singles Pattern (current sample)</h3>
+        <div style="background:#f8f9fa;border:1px solid var(--gray-border);border-radius:6px;padding:12px;font-family:monospace;font-size:11px;line-height:2">
+          Provider PT event (seqNo=6)<br>
+          &nbsp;&nbsp;serverCompetitor: "200156" (KRIVOKAPIC)<br>
+          &nbsp;&nbsp;isWinner: "H"<br>
+          &nbsp;&nbsp;scoreH: 1, scoreA: 0<br>
+          <strong style="color:var(--blue)">→ Mamba Action (1 action)</strong><br>
+          &nbsp;&nbsp;ActionId: [next sequential]<br>
+          &nbsp;&nbsp;PlayerId: [200863 = SZABO] (winner)<br>
+          &nbsp;&nbsp;Period: G1, ScoreHome: 1, ScoreAway: 0
+        </div>
+      </div>
+      <div>
+        <h3 style="font-size:12px;font-weight:700;margin-bottom:8px">Doubles Pattern (future — not in sample)</h3>
+        <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:6px;padding:12px;font-family:monospace;font-size:11px;line-height:2">
+          Provider PT event (doubles)<br>
+          &nbsp;&nbsp;serverCompetitor: "TEAM_H"<br>
+          &nbsp;&nbsp;serverPlayer: "200863" (specific player)<br>
+          &nbsp;&nbsp;isWinner: "H"<br>
+          <strong style="color:var(--orange)">→ Mamba Action (may need decomposition)</strong><br>
+          &nbsp;&nbsp;Credit winning point to serverPlayer<br>
+          &nbsp;&nbsp;⚠️ Doubles logic TBD — get sample
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Event Type Decisions</h3>
+    <table>
+      <tr><th>Event Type</th><th>Decompose?</th><th>Actions Created</th><th>Rationale</th></tr>
+      <tr><td><span class="tag tag-primary">PT</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>1 winner per point in singles. Use isWinner to identify the scoring player.</td></tr>
+
+      <tr><td><span class="tag" style="background:#e8f5e9;color:#2e7d32">GPOINT</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Dedicated game/set point event. Maps to SetPoint (4402).</td></tr>
+      <tr><td><span class="tag" style="background:#e8f5e9;color:#2e7d32">MPOINT</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Dedicated match point event. Maps to MatchPoint (4403).</td></tr>
+      <tr><td><span class="tag" style="background:#e8f5e9;color:#2e7d32">LV</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Pre-match event signalling match is live. Maps to MatchStart (4404).</td></tr>
+      <tr><td><span class="tag tag-ok">IM</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Game transition = GameStart action. Fire for each new game (G2-G5 only; G1 uses match start).</td></tr>
+      <tr><td><span class="tag tag-ok">UGR</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Updated game result = GameEnd action with final game score.</td></tr>
+      <tr><td><span class="tag tag-card">YC</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Yellow card → 1 action. cardIssuedCompetitor = sanctioned player.</td></tr>
+      <tr><td><span class="tag tag-ok">LET</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Let called → 1 action (score unchanged, rally replayed). Log for completeness.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- SHEET 5: MATCH / SCHEDULE INGESTION -->
+<div class="card" id="match-ingestion">
+  <div class="card-header">
+    <div class="icon" style="background:#e3f2fd">📅</div>
+    <h2>Sheet 5 — Match / Schedule Ingestion</h2>
+    <span class="sheet-num">Sheet 5 of 7</span>
+  </div>
+  <div class="card-body">
+    <div class="info-block">
+      <h4>Feed: DT_SCHEDULE_UPDATE (source: OVR)</h4>
+      <p>One Kafka message per schedule update. Key path: <span class="code">value.competition.unit[]</span> — each array item is one match unit. The outer <span class="code">value</span> carries metadata (<span class="code">competitionCode</span>, <span class="code">logicalDate</span>, <span class="code">source</span>).</p>
+    </div>
+
+    <table style="margin-top:12px">
+      <tr><th>Entity</th><th>JSON Path</th><th>WSC Target</th><th>Key Fields</th></tr>
+
+      <!-- Kafka envelope -->
+      <tr>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0">Envelope</span></td>
+        <td class="path">value (top-level)</td>
+        <td>Feed metadata</td>
+        <td>documentType, competitionCode, source, logicalDate, eventId</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"timestamp"</span>: <span class="json-num">1777203263526</span>,
+  <span class="json-key">"key"</span>: <span class="json-str">"From_OVR"</span>,
+  <span class="json-key">"value"</span>: {
+    <span class="json-key">"documentType"</span>: <span class="json-str json-highlight">"DT_SCHEDULE_UPDATE"</span>,
+    <span class="json-key">"competitionCode"</span>: <span class="json-str json-highlight">"WTT-2026-3304-TEV-WCD"</span>,
+    <span class="json-key">"source"</span>: <span class="json-str">"OVR"</span>,
+    <span class="json-key">"eventId"</span>: <span class="json-str">"3304"</span>,
+    <span class="json-key">"logicalDate"</span>: <span class="json-str">"2026-04-26"</span>,
+    <span class="json-key">"feedFlag"</span>: <span class="json-str">"P"</span>,
+    <span class="json-key">"competition"</span>: { <span style="color:#6c7086">/* unit[], session[] */</span> }
+  }
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ documentType = "DT_SCHEDULE_UPDATE"</span> — route to match ingestion handler<br>
+            <span class="arrow">→ competitionCode</span> — maps to WSC TournamentCode / ExternalId<br>
+            <span class="arrow">→ source = "OVR"</span> — schedule data comes from OVR (not OES)<br>
+            <span class="arrow">→ feedFlag = "P"</span> — production data (vs "T" test)<br>
+            <span class="arrow">→ logicalDate</span> — schedule date context
+          </div>
+        </div>
+      </td></tr>
+
+      <!-- Match unit -->
+      <tr>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0">Match</span></td>
+        <td class="path">value.competition.unit[n]</td>
+        <td>WSC Game / Match</td>
+        <td>code, startDate, actualStartDate, subEvent, venue, bestOfXGames, startList</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"code"</span>: <span class="json-str json-highlight">"TTEMSINGLES--------U17GP01000100--"</span>,
+  <span class="json-key">"startDate"</span>: <span class="json-str">"2026-04-27T08:00:00"</span>,
+  <span class="json-key">"actualStartDate"</span>: <span class="json-str json-highlight">"2026-04-27T10:00:00"</span>,
+  <span class="json-key">"actualEndDate"</span>: <span class="json-str">"2026-04-27T10:25:00"</span>,
+  <span class="json-key">"location"</span>: <span class="json-str">"T01"</span>,
+  <span class="json-key">"venue"</span>: <span class="json-str">"TTV"</span>,
+  <span class="json-key">"subEvent"</span>: <span class="json-str json-highlight">"U17 Boys' Singles"</span>,
+  <span class="json-key">"eventCategory"</span>: <span class="json-str">"YOU"</span>,
+  <span class="json-key">"round"</span>: <span class="json-str">"GP01"</span>,
+  <span class="json-key">"draw"</span>: <span class="json-str">"Group Qualification"</span>,
+  <span class="json-key">"bestOfXGames"</span>: <span class="json-num json-highlight">5</span>,
+  <span class="json-key">"advantagePerGame"</span>: <span class="json-num">2</span>,
+  <span class="json-key">"suddenDeathPoint"</span>: <span class="json-num">99</span>,
+  <span class="json-key">"yellowCard"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"yellowRed1"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"yellowRed2"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"scheduleStatus"</span>: <span class="json-str">"Scheduled"</span>,
+  <span class="json-key">"unitNum"</span>: <span class="json-str">"1"</span>,
+  <span class="json-key">"itemName"</span>: [{"language":"ENG","value":<span class="json-str">"U17 Boys' Singles - Gr.1 - M 1"</span>}],
+  <span class="json-key">"venueDescription"</span>: {
+    "locationName": <span class="json-str">"Table 1"</span>,
+    "venueName": <span class="json-str">"Arena Hotel Hills"</span>
+  },
+  <span class="json-key">"startList"</span>: { <span style="color:#6c7086">/* start[] competitors — see below */</span> }
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ code</span> — WSC ExternalMatchId / MatchCode<br>
+            <span class="arrow">→ actualStartDate</span> — use this over startDate for actual timing<br>
+            <span class="arrow">→ subEvent</span> — event label (e.g., "U17 Boys' Singles")<br>
+            <span class="arrow">→ bestOfXGames = 5</span> — match format (best of 5 games)<br>
+            <span class="arrow">→ suddenDeathPoint = 99</span> — ruleset flag (99 = active sudden death)<br>
+            <span class="arrow">→ yellowCard/yellowRed1/yellowRed2</span> — card escalation rules for this match<br>
+            <span class="arrow">→ venueDescription.locationName</span> — table number ("Table 1")<br>
+            <span class="arrow">→ scheduleStatus</span> — "Scheduled" / "Running" / "Finished"
+          </div>
+        </div>
+      </td></tr>
+
+      <!-- Competitor in startList -->
+      <tr>
+        <td><span class="tag" style="background:#e3f2fd;color:#1565c0">Competitor</span></td>
+        <td class="path">unit[n].startList.start[n].competitor</td>
+        <td>WSC Competitor / Side</td>
+        <td>code, organization, seed, teamName, composition.athlete[]</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"startOrder"</span>: <span class="json-num json-highlight">1</span>,
+  <span class="json-key">"competitor"</span>: {
+    <span class="json-key">"code"</span>: <span class="json-str json-highlight">"200124"</span>,
+    <span class="json-key">"type"</span>: <span class="json-str">"A"</span>,
+    <span class="json-key">"organization"</span>: <span class="json-str json-highlight">"HUN"</span>,
+    <span class="json-key">"seed"</span>: <span class="json-num">1</span>,
+    <span class="json-key">"qualifier"</span>: <span class="json-bool">true</span>,
+    <span class="json-key">"description"</span>: {
+      <span class="json-key">"teamName"</span>: <span class="json-str">"GERGELY Mark"</span>,
+      <span class="json-key">"ifId"</span>: <span class="json-str">"200124"</span>
+    },
+    <span class="json-key">"composition"</span>: {
+      <span class="json-key">"athlete"</span>: [{
+        <span class="json-key">"code"</span>: <span class="json-str json-highlight">"200124"</span>,
+        <span class="json-key">"order"</span>: <span class="json-num">1</span>,
+        <span class="json-key">"description"</span>: {
+          <span class="json-key">"givenName"</span>: <span class="json-str">"Mark"</span>,
+          <span class="json-key">"familyName"</span>: <span class="json-str">"GERGELY"</span>,
+          <span class="json-key">"organization"</span>: <span class="json-str">"HUN"</span>,
+          <span class="json-key">"gender"</span>: <span class="json-str">"M"</span>,
+          <span class="json-key">"birthDate"</span>: <span class="json-str">"2010-02-22"</span>,
+          <span class="json-key">"ifId"</span>: <span class="json-str">"200124"</span>
+        }
+      }]
+    }
+  }
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ startOrder = 1</span> — Home side (startOrder=2 = Away)<br>
+            <span class="arrow">→ competitor.code</span> — primary competitor/team ID. In singles = same as athlete code<br>
+            <span class="arrow">→ organization = "HUN"</span> — IOC country code<br>
+            <span class="arrow">→ composition.athlete[0].code</span> — individual player ExternalId<br>
+            <span class="arrow">→ ifId</span> — ITTF's internal player ID (same as code in singles)<br><br>
+            <strong>Note:</strong> In doubles, competitor.code ≠ athlete.code. athlete[] will have 2 entries.
+          </div>
+        </div>
+      </td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- SHEET 6: PLAYERS / PARTICIPANTS INGESTION -->
+<div class="card" id="player-ingestion">
+  <div class="card-header">
+    <div class="icon" style="background:#f3e5f5">🏃</div>
+    <h2>Sheet 6 — Players / Participants Ingestion</h2>
+    <span class="sheet-num">Sheet 6 of 7</span>
+  </div>
+  <div class="card-body">
+    <div class="info-block">
+      <h4>Source: athlete[] nested in DT_SCHEDULE_UPDATE or DT_PARTIC_UPDATE</h4>
+      <p>Player/athlete data arrives embedded inside competitor compositions. Path: <span class="code">unit[n].startList.start[n].competitor.composition.athlete[]</span>. Each athlete object contains the full profile (name, DOB, nationality, gender).</p>
+    </div>
+
+    <table style="margin-top:12px">
+      <tr><th>Entity</th><th>JSON Path</th><th>WSC Target</th><th>Key Fields</th></tr>
+
+      <!-- Athlete profile -->
+      <tr>
+        <td><span class="tag" style="background:#f3e5f5;color:#6a1b9a">Athlete</span></td>
+        <td class="path">competitor.composition.athlete[n]</td>
+        <td>WSC Player</td>
+        <td>code, givenName, familyName, organization, gender, birthDate, ifId</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"code"</span>: <span class="json-str json-highlight">"200124"</span>,
+  <span class="json-key">"order"</span>: <span class="json-num">1</span>,
+  <span class="json-key">"description"</span>: {
+    <span class="json-key">"givenName"</span>: <span class="json-str json-highlight">"Mark"</span>,
+    <span class="json-key">"familyName"</span>: <span class="json-str json-highlight">"GERGELY"</span>,
+    <span class="json-key">"organization"</span>: <span class="json-str json-highlight">"HUN"</span>,
+    <span class="json-key">"gender"</span>: <span class="json-str json-highlight">"M"</span>,
+    <span class="json-key">"birthDate"</span>: <span class="json-str json-highlight">"2010-02-22"</span>,
+    <span class="json-key">"ifId"</span>: <span class="json-str">"200124"</span>,
+    <span class="json-key">"class"</span>: <span class="json-null">null</span>
+  }
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ code</span> — WSC PlayerExternalId (ITTF player ID)<br>
+            <span class="arrow">→ ifId</span> — same as code in standard cases<br>
+            <span class="arrow">→ givenName + familyName</span> → WSC PlayerName<br>
+            <span class="arrow">→ organization = "HUN"</span> — IOC nationality code<br>
+            <span class="arrow">→ gender = "M"</span> — M / F<br>
+            <span class="arrow">→ birthDate = "2010-02-22"</span> — ISO 8601 date<br>
+            <span class="arrow">→ order</span> — position in team (1 = first player, 2 = second in doubles)<br><br>
+            <strong>Note:</strong> In singles, 1 athlete per competitor. In doubles, 2 athletes per competitor — iterate array, do not access [0] directly.
+          </div>
+        </div>
+      </td></tr>
+
+      <!-- Second athlete (doubles example) -->
+      <tr>
+        <td><span class="tag" style="background:#f3e5f5;color:#6a1b9a">Athlete (doubles)</span></td>
+        <td class="path">competitor.composition.athlete[1]</td>
+        <td>WSC Player (partner)</td>
+        <td>code, order=2 — second player in a doubles pair</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example"><span style="color:#6c7086;font-size:10px">// From DT_PARTIC_TEAMS_UPDATE — doubles pair Aron KANLIC / Ana SLADOJE</span>
+{
+  <span class="json-key">"composition"</span>: {
+    <span class="json-key">"athlete"</span>: [
+      { <span class="json-key">"code"</span>: <span class="json-str json-highlight">"200152"</span>, <span class="json-key">"order"</span>: <span class="json-num">1</span> },
+      { <span class="json-key">"code"</span>: <span class="json-str json-highlight">"202704"</span>, <span class="json-key">"order"</span>: <span class="json-num">2</span> }
+    ]
+  }
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ athlete[0].code = "200152"</span> — first player in pair (Aron KANLIC)<br>
+            <span class="arrow">→ athlete[1].code = "202704"</span> — second player (Ana SLADOJE)<br>
+            <span class="arrow">→ order</span> — 1 = primary, 2 = secondary<br><br>
+            In doubles, both athlete codes must be resolved to WSC PlayerIds independently. The team <span class="code">code</span> ("100175986") is the team entity — distinct from the individual player codes.
+          </div>
+        </div>
+      </td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- SHEET 7: TEAMS INGESTION -->
+<div class="card" id="teams-ingestion">
+  <div class="card-header">
+    <div class="icon" style="background:#e8f5e9">👥</div>
+    <h2>Sheet 7 — Teams Ingestion</h2>
+    <span class="sheet-num">Sheet 7 of 7</span>
+  </div>
+  <div class="card-body">
+    <div class="info-block">
+      <h4>Feed: DT_PARTIC_TEAMS_UPDATE (source: OES)</h4>
+      <p>One Kafka message contains the full teams participation list. Key path: <span class="code">value.competition.team[]</span> — each item is a registered doubles pair or team. Carries ranking, seeding, event entry, and athlete composition.</p>
+    </div>
+
+    <table style="margin-top:12px">
+      <tr><th>Entity</th><th>JSON Path</th><th>WSC Target</th><th>Key Fields</th></tr>
+
+      <!-- Envelope -->
+      <tr>
+        <td><span class="tag" style="background:#e8f5e9;color:#2e7d32">Envelope</span></td>
+        <td class="path">value (top-level)</td>
+        <td>Feed metadata</td>
+        <td>documentType, competitionCode, source, modificationIndicator</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"documentType"</span>: <span class="json-str json-highlight">"DT_PARTIC_TEAMS_UPDATE"</span>,
+  <span class="json-key">"competitionCode"</span>: <span class="json-str">"WTT-2026-3304-TEV-WCD"</span>,
+  <span class="json-key">"source"</span>: <span class="json-str json-highlight">"OES"</span>,
+  <span class="json-key">"eventId"</span>: <span class="json-str">"3304"</span>,
+  <span class="json-key">"logicalDate"</span>: <span class="json-str">"2026-04-25"</span>,
+  <span class="json-key">"language"</span>: <span class="json-str">"ENG"</span>,
+  <span class="json-key">"competition"</span>: { <span style="color:#6c7086">/* team[] */</span> }
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ documentType = "DT_PARTIC_TEAMS_UPDATE"</span> — route to teams handler<br>
+            <span class="arrow">→ source = "OES"</span> — participation data comes from OES (not OVR)<br>
+            <span class="arrow">→ language = "ENG"</span> — text fields are in English
+          </div>
+        </div>
+      </td></tr>
+
+      <!-- Team -->
+      <tr>
+        <td><span class="tag" style="background:#e8f5e9;color:#2e7d32">Team</span></td>
+        <td class="path">value.competition.team[n]</td>
+        <td>WSC Team / DoublesEntry</td>
+        <td>code, name, organization, category, modificationIndicator, composition.athlete[]</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"code"</span>: <span class="json-str json-highlight">"100175986"</span>,
+  <span class="json-key">"number"</span>: <span class="json-str">"5"</span>,
+  <span class="json-key">"gender"</span>: <span class="json-str">"X"</span>,
+  <span class="json-key">"name"</span>: <span class="json-str json-highlight">"Aron KANLIC/Ana SLADOJE"</span>,
+  <span class="json-key">"tvTeamName"</span>: <span class="json-str">"Aron KANLIC/Ana SLADOJE"</span>,
+  <span class="json-key">"organization"</span>: <span class="json-str json-highlight">"BIH"</span>,
+  <span class="json-key">"current"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"modificationIndicator"</span>: <span class="json-str json-highlight">"U"</span>,
+  <span class="json-key">"type"</span>: <span class="json-str">"8"</span>,
+  <span class="json-key">"category"</span>: <span class="json-str json-highlight">"U19"</span>,
+  <span class="json-key">"composition"</span>: {
+    <span class="json-key">"athlete"</span>: [
+      { <span class="json-key">"code"</span>: <span class="json-str">"200152"</span>, <span class="json-key">"order"</span>: <span class="json-num">1</span> },
+      { <span class="json-key">"code"</span>: <span class="json-str">"202704"</span>, <span class="json-key">"order"</span>: <span class="json-num">2</span> }
+    ]
+  }
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ code = "100175986"</span> — WSC TeamExternalId<br>
+            <span class="arrow">→ name</span> — display name for the doubles pair<br>
+            <span class="arrow">→ organization = "BIH"</span> — IOC country code. Can be combined ("CZE/BUL") for mixed-nationality pairs<br>
+            <span class="arrow">→ gender = "X"</span> — mixed doubles (M = men, F = women, X = mixed)<br>
+            <span class="arrow">→ category = "U19"</span> — age group<br>
+            <span class="arrow">→ modificationIndicator</span> — "U" update, "N" new, "D" delete<br>
+            <span class="arrow">→ composition.athlete[]</span> — the two players in the pair
+          </div>
+        </div>
+      </td></tr>
+
+      <!-- Team entry / ranking -->
+      <tr>
+        <td><span class="tag" style="background:#e8f5e9;color:#2e7d32">Team Entry</span></td>
+        <td class="path">team[n].discipline.registeredEvent</td>
+        <td>Event Registration</td>
+        <td>event (code), eventEntry[] — SEED, QUAL_TYPE, DRAW, RANK_WLD, RANK_PTS</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"discipline"</span>: {
+    <span class="json-key">"code"</span>: <span class="json-str">"TTE-------------------------------"</span>,
+    <span class="json-key">"registeredEvent"</span>: {
+      <span class="json-key">"event"</span>: <span class="json-str json-highlight">"TTEXDOUBLES--------U19------------"</span>,
+      <span class="json-key">"eventEntry"</span>: [
+        { <span class="json-key">"code"</span>: <span class="json-str">"SEED"</span>, <span class="json-key">"value"</span>: <span class="json-str">"0"</span> },
+        { <span class="json-key">"code"</span>: <span class="json-str">"QUAL_TYPE"</span>, <span class="json-key">"value"</span>: <span class="json-str json-highlight">"AER"</span> },
+        { <span class="json-key">"code"</span>: <span class="json-str">"DRAW"</span>, <span class="json-key">"value"</span>: <span class="json-str">"Main Draw"</span> },
+        { <span class="json-key">"code"</span>: <span class="json-str">"RANK_WLD"</span>, <span class="json-key">"value"</span>: <span class="json-str json-highlight">"29"</span> },
+        { <span class="json-key">"code"</span>: <span class="json-str">"RANK_PTS"</span>, <span class="json-key">"value"</span>: <span class="json-str">"5067"</span> }
+      ]
+    }
+  }
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ event = "TTEXDOUBLES--------U19"</span> — event code the team is registered for<br>
+            <span class="arrow">→ SEED</span> — seeding number (0 = unseeded)<br>
+            <span class="arrow">→ QUAL_TYPE = "AER"</span> — qualification type (AER = automatic entry by ranking)<br>
+            <span class="arrow">→ DRAW = "Main Draw"</span> — draw placement<br>
+            <span class="arrow">→ RANK_WLD = "29"</span> — world ranking at time of entry<br>
+            <span class="arrow">→ RANK_PTS = "5067"</span> — ranking points<br><br>
+            eventEntry is a flat key-value array — iterate and map by <span class="code">code</span> field.
+          </div>
+        </div>
+      </td></tr>
+
+      <!-- Deletion / update handling -->
+      <tr>
+        <td><span class="tag" style="background:#ffebee;color:#c62828">Deletion</span></td>
+        <td class="path">team[n].modificationIndicator = "D"</td>
+        <td>WSC Team (delete)</td>
+        <td>modificationIndicator="D" — team withdrawn/removed from event</td>
+      </tr>
+      <tr style="background:#f9f9ff"><td colspan="4" style="padding:14px;border-top:none">
+        <div class="json-grid">
+          <div class="json-example">{
+  <span class="json-key">"code"</span>: <span class="json-str">"100244153"</span>,
+  <span class="json-key">"name"</span>: <span class="json-str">"Paul FLEMMING/Sara RIVETTI"</span>,
+  <span class="json-key">"organization"</span>: <span class="json-str">"GER/CRO"</span>,
+  <span class="json-key">"modificationIndicator"</span>: <span class="json-str json-highlight">"D"</span>,
+  <span class="json-key">"category"</span>: <span class="json-str">"U15"</span>
+}</div>
+          <div class="json-note">
+            <span class="arrow">→ modificationIndicator = "D"</span> — this team was deleted/withdrawn<br>
+            <span class="arrow">→ "U"</span> = update existing, <span class="arrow">→ "N"</span> = new entry<br><br>
+            Always check modificationIndicator before upserting. "D" records should trigger soft-delete or deactivation in WSC, not an insert.
+          </div>
+        </div>
+      </td></tr>
+    </table>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<div style="text-align:center;padding:20px;color:var(--gray);font-size:11px;background:white;border-top:1px solid var(--gray-border);margin-top:8px">
+  WTT PBP Ingestion Mapping Guide · Manor Birman, PM Intake · WSC Sports · May 2026 · Based on sample: WTT-2026-3304-TEV-WCD · SZABO vs KRIVOKAPIC (seqNo 1–186)
+</div>
+
+</body>
+</html>
