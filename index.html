@@ -130,13 +130,12 @@
 
 <div class="nav">
   <a href="#action-mapping" class="active">1 — Action Mapping + JSON</a>
-  <a href="#decomposition">2 — Decomposition</a>
-  <a href="#match-ingestion">3 — Match Ingestion</a>
-  <a href="#player-ingestion">4 — Players Ingestion</a>
-  <a href="#teams-ingestion">5 — Teams Ingestion</a>
-  <a href="#player-roles">6 — Player Roles</a>
-  <a href="#field-mapping">7 — Field Mapping</a>
-  <a href="#pitfalls">8 — Pitfalls &amp; Test Cases</a>
+  <a href="#match-ingestion">2 — Match Ingestion</a>
+  <a href="#player-ingestion">3 — Players Ingestion</a>
+  <a href="#teams-ingestion">4 — Teams Ingestion</a>
+  <a href="#player-roles">5 — Player Roles</a>
+  <a href="#field-mapping">6 — Field Mapping</a>
+  <a href="#pitfalls">7 — Pitfalls &amp; Test Cases</a>
 </div>
 
 <div class="content">
@@ -421,63 +420,6 @@
 
     </table>
 
-  </div>
-</div>
-
-<!-- SHEET 4: DECOMPOSITION -->
-<div class="card" id="decomposition">
-  <div class="card-header">
-    <div class="icon" style="background:#e8f5e9">🔀</div>
-    <h2>Sheet 4 — Event Decomposition Decision</h2>
-    <span class="sheet-num">Sheet 4 of 7</span>
-  </div>
-  <div class="card-body">
-    <div class="info-block ok">
-      <h4>✅ Decision: 1:1 Mapping for Singles (No Decomposition Required)</h4>
-      <p>Table Tennis Singles has exactly 1 player per side. Each <span class="code">PT</span> event = 1 scoring action. <strong>No multi-player decomposition needed.</strong> This is the simplest case in WSC's sport portfolio.</p>
-    </div>
-
-    <div class="grid2" style="margin-top:12px">
-      <div>
-        <h3 style="font-size:12px;font-weight:700;margin-bottom:8px">Singles Pattern (current sample)</h3>
-        <div style="background:#f8f9fa;border:1px solid var(--gray-border);border-radius:6px;padding:12px;font-family:monospace;font-size:11px;line-height:2">
-          Provider PT event (seqNo=6)<br>
-          &nbsp;&nbsp;serverCompetitor: "200156" (KRIVOKAPIC)<br>
-          &nbsp;&nbsp;isWinner: "H"<br>
-          &nbsp;&nbsp;scoreH: 1, scoreA: 0<br>
-          <strong style="color:var(--blue)">→ Mamba Action (1 action)</strong><br>
-          &nbsp;&nbsp;ActionId: [next sequential]<br>
-          &nbsp;&nbsp;PlayerId: [200863 = SZABO] (winner)<br>
-          &nbsp;&nbsp;Period: G1, ScoreHome: 1, ScoreAway: 0
-        </div>
-      </div>
-      <div>
-        <h3 style="font-size:12px;font-weight:700;margin-bottom:8px">Doubles Pattern (future — not in sample)</h3>
-        <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:6px;padding:12px;font-family:monospace;font-size:11px;line-height:2">
-          Provider PT event (doubles)<br>
-          &nbsp;&nbsp;serverCompetitor: "TEAM_H"<br>
-          &nbsp;&nbsp;serverPlayer: "200863" (specific player)<br>
-          &nbsp;&nbsp;isWinner: "H"<br>
-          <strong style="color:var(--orange)">→ Mamba Action (may need decomposition)</strong><br>
-          &nbsp;&nbsp;Credit winning point to serverPlayer<br>
-          &nbsp;&nbsp;⚠️ Doubles logic TBD — get sample
-        </div>
-      </div>
-    </div>
-
-    <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">Event Type Decisions</h3>
-    <table>
-      <tr><th>Event Type</th><th>Decompose?</th><th>Actions Created</th><th>Rationale</th></tr>
-      <tr><td><span class="tag tag-primary">PT</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>1 winner per point in singles. Use isWinner to identify the scoring player.</td></tr>
-
-      <tr><td><span class="tag" style="background:#e8f5e9;color:#2e7d32">GPOINT</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Dedicated game/set point event. Maps to SetPoint (4402).</td></tr>
-      <tr><td><span class="tag" style="background:#e8f5e9;color:#2e7d32">MPOINT</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Dedicated match point event. Maps to MatchPoint (4403).</td></tr>
-      <tr><td><span class="tag" style="background:#e8f5e9;color:#2e7d32">LV</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Pre-match event signalling match is live. Maps to MatchStart (4404).</td></tr>
-      <tr><td><span class="tag tag-ok">IM</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Game transition = GameStart action. Fire for each new game (G2-G5 only; G1 uses match start).</td></tr>
-      <tr><td><span class="tag tag-ok">UGR</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Updated game result = GameEnd action with final game score.</td></tr>
-      <tr><td><span class="tag tag-card">YC / YR1 / YR2</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Booking (113495) → 1 action. cardType distinguishes: YC → 4409 Booking-Warning, YR1 → 4410 Booking-PointPenalty, YR2 → 4411 Booking-GameForfeit. cardIssuedCompetitor = sanctioned player.</td></tr>
-      <tr><td><span class="tag tag-ok">LET</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Let called → 1 action (score unchanged, rally replayed). Log for completeness.</td></tr>
-    </table>
   </div>
 </div>
 
