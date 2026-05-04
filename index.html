@@ -261,17 +261,22 @@
         <td><span class="tag tag-card">YC / YR1 / YR2</span></td>
         <td>varies</td><td>When issued</td>
         <td>Booking</td>
-        <td><span class="tag" style="background:#e3f2fd;color:#1565c0;font-size:10px">TBD</span></td>
+        <td style="font-size:12px;line-height:1.6">
+          <span style="display:block;color:#555">113495</span>
+          <span style="display:block;color:#555">YC → <strong>4409</strong></span>
+          <span style="display:block;color:#555">YR1 → <strong>4410</strong></span>
+          <span style="display:block;color:#555">YR2 → <strong>4411</strong></span>
+        </td>
         <td>cardType ("YC"/"YR1"/"YR2"), cardIssuedCompetitor, cardIssuedTo, cardIssuedPlayer (bool), cardIssuedCoach (bool), scoreH/scoreA, isWinner</td>
       </tr>
       <tr style="background:#f9f9ff"><td colspan="6" style="padding:14px;border-top:none">
         <div class="info-block warn" style="margin-bottom:14px">
-          <h4>📋 Booking — 3 escalation levels (all use actionType: "YC")</h4>
+          <h4>📋 Booking (113495) — 3 escalation levels (all use actionType: "YC")</h4>
           <table style="margin-top:8px;font-size:14px">
-            <tr><th>cardType</th><th>Name</th><th>Consequence</th><th>isWinner</th><th>Sample</th></tr>
-            <tr><td><span class="tag tag-card">YC</span></td><td>Yellow Card</td><td>Warning — no point penalty</td><td>null</td><td><span class="tag tag-ok">✅ seqNo=94</span></td></tr>
-            <tr><td><span class="tag tag-card">YR1</span></td><td>Yellow+Red 1st</td><td>Point awarded to opponent</td><td>"H" or "A" (opponent)</td><td><span class="tag tag-warn">⚠️ no sample — confirmed via match config flag <code style="font-size:12px">yellowRed1:true</code></span></td></tr>
-            <tr><td><span class="tag tag-card">YR2</span></td><td>Yellow+Red 2nd</td><td>Game awarded to opponent</td><td>"H" or "A" (opponent)</td><td><span class="tag tag-warn">⚠️ no sample — confirmed via match config flag <code style="font-size:12px">yellowRed2:true</code></span></td></tr>
+            <tr><th>cardType</th><th>Name</th><th>WSC Action ID</th><th>Consequence</th><th>isWinner</th><th>Sample</th></tr>
+            <tr><td><span class="tag tag-card">YC</span></td><td>Yellow Card</td><td><strong>4409</strong> Booking-Warning</td><td>Warning — no point penalty</td><td>null</td><td><span class="tag tag-ok">✅ seqNo=94</span></td></tr>
+            <tr><td><span class="tag tag-card">YR1</span></td><td>Yellow+Red 1st</td><td><strong>4410</strong> Booking-PointPenalty</td><td>Point awarded to opponent</td><td>"H" or "A" (opponent)</td><td><span class="tag tag-warn">⚠️ no sample — confirmed via match config flag <code style="font-size:12px">yellowRed1:true</code></span></td></tr>
+            <tr><td><span class="tag tag-card">YR2</span></td><td>Yellow+Red 2nd</td><td><strong>4411</strong> Booking-GameForfeit</td><td>Game awarded to opponent</td><td>"H" or "A" (opponent)</td><td><span class="tag tag-warn">⚠️ no sample — confirmed via match config flag <code style="font-size:12px">yellowRed2:true</code></span></td></tr>
           </table>
         </div>
         <div class="json-grid">
@@ -470,7 +475,7 @@
       <tr><td><span class="tag" style="background:#e8f5e9;color:#2e7d32">LV</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Pre-match event signalling match is live. Maps to MatchStart (4404).</td></tr>
       <tr><td><span class="tag tag-ok">IM</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Game transition = GameStart action. Fire for each new game (G2-G5 only; G1 uses match start).</td></tr>
       <tr><td><span class="tag tag-ok">UGR</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Updated game result = GameEnd action with final game score.</td></tr>
-      <tr><td><span class="tag tag-card">YC / YR1 / YR2</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Booking → 1 action. cardType distinguishes YC/YR1/YR2. cardIssuedCompetitor = sanctioned player. All three IDs missing — new Booking action needed in SMT.</td></tr>
+      <tr><td><span class="tag tag-card">YC / YR1 / YR2</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Booking (113495) → 1 action. cardType distinguishes: YC → 4409 Booking-Warning, YR1 → 4410 Booking-PointPenalty, YR2 → 4411 Booking-GameForfeit. cardIssuedCompetitor = sanctioned player.</td></tr>
       <tr><td><span class="tag tag-ok">LET</span></td><td><span class="tag tag-ok">No</span></td><td>1</td><td>Let called → 1 action (score unchanged, rally replayed). Log for completeness.</td></tr>
     </table>
   </div>
